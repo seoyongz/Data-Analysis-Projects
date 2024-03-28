@@ -9,6 +9,7 @@ spec_clust = function(result, k=5){
   item_scaled <- item_position %>% scale()  
   
   spectral_result <- specc(as.matrix(item_position), centers = k) #kernlab package
+  spectral_result$tot.withinss
   scenters = spectral_result@centers
   spectral_result <- data.frame(cbind(group = as.numeric(spectral_result),
                                       item = 1:nrow(item_position)))

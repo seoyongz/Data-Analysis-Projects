@@ -1,41 +1,104 @@
 
-
-## C01SIV 빼고 lsirm fitting
-
-elem_lsirm_fit1107 = lsirm1pl(data = elem_lsirm_data3)
-setwd("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit")
-save(elem_lsirm_fit1107, file = "elem_lsirm_fit1107.RData")
-ngroup = 5
-
-spec_clust(elem_lsirm_fit1107, k=ngroup)
-
-
-# Work 1 : 초등데이터 5개의 cluster 별로 lsirm 돌려서 gamma가 0 나오는지 확인
-
-## cluster별 lsirm fitting할 데이터 만들기 (ngroup = 5)
-elem_clust_var = list()
-elem_clust_var[[1]] = colnames(elem_lsirm_data3)[c(51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71)]
-elem_clust_var[[2]] = colnames(elem_lsirm_data3)[c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)]
-elem_clust_var[[3]] = colnames(elem_lsirm_data3)[c(38, 39, 40, 41, 42, 43, 46, 47, 48, 49)]
-elem_clust_var[[4]] = colnames(elem_lsirm_data3)[c(23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37)]
-elem_clust_var[[5]] = colnames(elem_lsirm_data3)[c(44, 45, 50, 72, 73, 74, 75)]
+##########################################################################
+## In this file, 
+## Work1 : Clustering items with latent positions
+## Work2 : Determine the number of clusters using following methods:
+#### Method 1. Silhouette Score
+#### Method 2. Elbow method
+## Work3 : Check the cluster validity using following method:
+#### Method 1. using gamma parameter in LSIRM
+##########################################################################
+library(cluster) ## Silhouette Score
+library(stats) ## Elbow method
 
 
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+elem_data5 = read.csv("elem_data5.csv")
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+load("elem_lsirm_fit1.RData")
+
+## Work 1 : Clustering with spec_clust function ngroup = 1:13
+###########################################################################
+setwd("/Users/seoyoung/Desktop/my_git/DA_Projects/IncheonMentalHealth")
+source("spec_clust.R")
+
+nitem = ncol(elem_data5[,-1])
+ngroup = 13
+
+# Save the cluster group for each clustering(1:13)
+item_clust_df = as.data.frame(matrix(NA, nrow=nitem, ncol=ngroup)) 
+colnames(item_clust_df) = paste0("G", 1:13)
+elem_clust = list()
+sse = rep(NA, ngroup)
+
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
+for(n in 1:ngroup){
+  
+  # the number of cluster is n
+  clust_tmp = spec_clust(elem_lsirm_fit1, k=n)
+  
+  # save the clustering result in list
+  elem_clust[[n]] = clust_tmp
+  
+  # plot the clustering result and save the plot
+  clust_tmp$p
+  ggsave(paste0("cluster", n, ".jpg"), width=20, height=20, units=c("cm"))
+  
+  # save the clustering result in data.frame
+  for(i in 1:n){
+    
+    # item index which belongs to i-th cluster
+    clust_i = (elem_clust$clust[i, ])$items 
+    clust_i = as.numeric(strsplit(clust_i, ", ")[[1]])
+    
+    item_clust_df[clust_i, n] = i
+  }
+  
+  # For Elbow method
+  sse[n] = clust_tmp$tot.withinss
+}
+
+
+## Work 2 : Determine the number of clusters
+###########################################################################
+
+# Method 1 : Silhouette score
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+load("elem_lsirm_fit1.RData")
+
+w_est = elem_lsirm_fit1$w_estimate
+dist_matrix = proxy::simil(w_est, w_est, method="Euclidean")
+
+silhouette_score = rep(NA, ngroup)
+for(n in 1:ngroup){
+  silhouette_result = silhouette(item_clust_df[, n], dist_matrix)
+  silhouette_score[n] = mean(silhouette_result[, "sil_width"])
+}
+
+
+# Method 2 : Elbow method
+
+elbow_point = elbowMethod(sse)
+
+# 그래프로 SSE 시각화
+plot(x=1:ngroup, y=sse, type="b", pch=19, frame=FALSE, xlab="Number of clusters", ylab="SSE", main="Elbow Method for Spectral Clustering")
+abline(v=elbow_point, col="red", lty=2)
+
+
+
+## Work3 : Check the cluster validity using gamma parameter
+# Whether gamma=0 or not
+
+## Fit LSIRM within cluster G5
+item_names = colnames(elem_data5)[, -1]
 elem_clust_data = list()
-for(i in 1:ngroup){
-  elem_clust_data[[i]] = subset(elem_lsirm_data3, select=elem_clust_var[[i]])
-}
-
-
-
-## lsirm fitting
 elem_clust_lsirm_fit = list()
-for(i in 1:ngroup){
-  elem_clust_lsirm_fit[[i]] = lsirm1pl(data = elem_clust_data[[i]], spikenslab = T)
+for(k in ngroup){
+  elem_clustered = elem_data5[, item_clust_df$G5 == k]
+  elem_clust_lsirm_fit[[k]] = lsirm1pl(elem_clustered, spikenslab = T)
 }
-save(elem_clust_lsirm_fit, file = "/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/elem_clust_lsirm_fit.RData")
-plot(elem_clust_lsirm_fit[[5]])
-
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+save(elem_clust_lsirm_fit, "elem_clust_lsirm_fit.RData")
 
 
 

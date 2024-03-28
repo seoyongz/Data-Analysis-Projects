@@ -1,3 +1,12 @@
+
+##########################################################################
+## In this file, 
+## Select variables and save the dataframe -> elem_data5.csv
+## Fit "elem_data5" using LSIRM -> elem_lsirm_fit1.RData
+## Divide "elem_data5" by school and save as list -> elem_list_data.RData
+## Fit "elem_list_data" for each school -> elem_lsirm_fit_school.RData
+##########################################################################
+
 library(lsirm12pl)
 
 
@@ -34,17 +43,22 @@ write.csv(elem_data5, "elem_data5.csv", row.names=F)
 
 ## Work 2-1 : LSIRM fitting
 ##########################################################################
-elem_lsirm_fit1 = lsirm1pl(data = elem_data5[, -1])
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+elem_data5 = read.csv("elem_data5.csv")
+
+elem_lsirm_fit1 = lsirm1pl(data = elem_data5[, -1], 
+                           niter=15000, nburn=5000, nthin=10,
+                           jump_gamma=0.01, jump_w=0.1, jump_beta=0.3)
 
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
-save(elem_lsirm_fit1, file = "elem_lsirm_fit1_1027.RData")
+save(elem_lsirm_fit1, file = "elem_lsirm_fit1.RData")
 
 
 
-## Work 2-2 : Model Convergence Check
+## Work 2-2 : Convergence Check
 ##########################################################################
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
-load("elem_lsirm_fit1_1027.RData")
+load("elem_lsirm_fit1.RData")
 
 output = elem_lsirm_fit1
 nitem = ncol(output$beta)
@@ -89,41 +103,78 @@ for(ind in resp_ind_samp){
 ## Work 2-3 : Latent positions Check
 ###########################################################################
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
-load("elem_lsirm_fit1_1027.RData")
+load("elem_lsirm_fit1.RData")
 
 plot(elem_lsirm_fit1)
 
 # Plot only item latent positions (not respondents')
-elem_lsirm_fit1_item = data.frame()
+elem_lsirm_fit1_item = data.frame(w1 = rep(NA, nitem), w2 = rep(NA, nitem))
 elem_lsirm_fit1_item$w1 = elem_lsirm_fit1$w_estimate[, 1]
 elem_lsirm_fit1_item$w2 = elem_lsirm_fit1$w_estimate[, 2]
-elem_lsirm_fit1_item$item = colnames(elem_data5)
-categories = sub("^.{3}([^0-9]*)[0-9].*$", "\\1", colnames(elem_data5[, -1]))
-elem_lsirm_fit1_item$item_category = categories
+elem_lsirm_fit1_item$item = colnames(elem_data5)[-1]
+
+categ = sub("^.{3}([^0-9]*)[0-9].*$", "\\1", colnames(elem_data5[, -1]))
+categ[1:4] = "DR" # Student's Daily Routine
+elem_lsirm_fit1_item$item_category = categ
 
 
+## Plot
 ggplot(data = elem_lsirm_fit1_item) +
-  geom_point(aes(x = w1, y = w2, color = item_category),) +
-  geom_text_repel(aes(x = w1, y = w2, label = item), fontface=2, size = 3) +
+  geom_text_repel(aes(x = w1, y = w2, label = 1:nitem), fontface=2, size = 3) +
+  theme_minimal()
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
+ggsave("itemmap.jpg", width=25, height=25, units=c("cm"))
+
+## <<Color by category>>
+ggplot(data = elem_lsirm_fit1_item) +
+  geom_point(aes(x = w1, y = w2, color = item_category)) +
+  geom_text_repel(aes(x = w1, y = w2, label = (1:nitem)), fontface=2, size = 3) +
+  labs(x="w1", y="w2", fill="Item\nCategory")+
   theme_minimal()+
   theme(legend.position = "bottom")+
-  guides(fill = guide_legend(ncol = 6, byrow=T))+
-  theme(legend.key.size = unit(1.0, "cm"), 
-        legend.text = element_text(size = 12, face="bold"),
-        axis.text.x = element_text(size = 15, face="bold"),
-        axis.text.y = element_text(size = 15, face="bold"),
-        axis.title.x = element_text(size = 20, face="bold"),
-        axis.title.y = element_text(size = 20, face="bold"),
-        legend.title = element_text(size=15, face="bold"))
+  guides(color = guide_legend(nrow = 2, byrow=T))+
+  theme(legend.key.size = unit(0.5, "cm"), 
+        legend.text = element_text(size = 10, face="bold"),
+        axis.text.x = element_text(size = 10, face="bold"),
+        axis.text.y = element_text(size = 10, face="bold"),
+        axis.title.x = element_text(size = 10, face="bold"),
+        axis.title.y = element_text(size = 10, face="bold"),
+        legend.title = element_text(size=10, face="bold"))+
+  ggtitle("Latent positions of Items in elementary school")
 
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
-ggsave("Latent positions of Items in elementary school")
+ggsave("itemmap_colors.jpg", width=25, height=25, units=c("cm"))
 
 
 
+## <<Exclude items in CE category>>
+ggplot(data = elem_lsirm_fit1_item[-c(27, 28), ]) +
+  geom_text_repel(aes(x = w1, y = w2, label = (1:nitem)[-c(27, 28)]), fontface=2, size = 3) +
+  theme_minimal()
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
+ggsave("itemmap_noCE.jpg", width=25, height=25, units=c("cm"))
 
-ngroup = 5
-spec_clust(elem_lsirm_fit1107, k=ngroup)
+  
+## <<Exclude items in CE category>>
+## and <<Color by category>>
+ggplot(data = elem_lsirm_fit1_item[-c(27, 28), ]) +
+  geom_point(aes(x = w1, y = w2, color = item_category)) +
+  geom_text_repel(aes(x = w1, y = w2, label = (1:nitem)[-c(27, 28)]), fontface=2, size = 3) +
+  labs(x="w1", y="w2", fill="Item\nCategory")+
+  theme_minimal()+
+  theme(legend.position = "bottom")+
+  guides(color = guide_legend(nrow = 2, byrow=T))+
+  theme(legend.key.size = unit(0.5, "cm"), 
+        legend.text = element_text(size = 10, face="bold"),
+        axis.text.x = element_text(size = 10, face="bold"),
+        axis.text.y = element_text(size = 10, face="bold"),
+        axis.title.x = element_text(size = 10, face="bold"),
+        axis.title.y = element_text(size = 10, face="bold"),
+        legend.title = element_text(size=10, face="bold"))+
+  ggtitle("Latent positions of Items in elementary school")
+
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
+ggsave("itemmap_colors_noCE.jpg", width=25, height=25, units=c("cm"))
 
 
 
@@ -135,14 +186,16 @@ elem_data5 = read.csv("elem_data5.csv")
 
 elem_list_data = list()
 count = 1
-for(name in unique(elem_data5$C01SID)){
+school_names = unique(elem_data5$C01SID)
+for(name in school_names){
   elem_tmp = elem_data5[elem_data5$C01SID == name,]
   elem_tmp = as.matrix(subset(elem_tmp, select = -c(C01SID)))
+  
   elem_list_data[[count]] = elem_tmp
   count = count + 1
 }
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
-save(elem_list_data, file = "elem_list_data1031.RData")
+save(elem_list_data, file = "elem_list_data.RData")
 
 
 
@@ -150,7 +203,7 @@ save(elem_list_data, file = "elem_list_data1031.RData")
 ## Work 3-2 : LSIRM fitting for each school
 ########################################################################
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
-load(elem_list_data, file = "elem_list_data1031.RData")
+load(elem_list_data, file = "elem_list_data.RData")
 
 data = elem_list_data
 elem_lsirm_fit_school = list()

@@ -1,8 +1,8 @@
 
 ##################################################################
-### In this file, data is preprocessed.
-### preprocessed elementary data : elem_data4
-### saved in "/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data"
+## In this file, data is preprocessed.
+## preprocessed elementary data : elem_data4
+## saved in "/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data"
 ##################################################################
 
 
