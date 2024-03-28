@@ -6,64 +6,7 @@ elem_lsirm_data3 = as.matrix(subset(elem_data4, select = -c(C01SID, C01CE1, C01C
 
 ##------------------------------------------------------------------------------------------------##
 ## 11/9
-# Task 1 : 문항 그룹별 regression
-# Task 2 : 줄이기 전 문항 / 줄인 문항으로 Rasch model 돌리고 theta값 확인
-
-
-### Task 1
-## group 1)
-C01EM = grep("^C01EM[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01SS = grep("^C01SS[0-9]+$", colnames(elem_lsirm_data3), value = T)
-EM_score = rowSums(elem_lsirm_data3[,C01EM])
-SS_score = rowSums(elem_lsirm_data3[,C01SS])
-
-plot(jitter(EM_score), jitter(SS_score))
-lm_SS_EM = lm(SS_score ~ EM_score)
-summary(lm_SS_EM)
-cor(SS_score, EM_score) # 0.6488856
-
-
-
-## group 2) 
-C01SH = grep("^C01SH[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01DH = grep("^C01DH[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SH_score = rowSums(elem_lsirm_data3[,C01SH])
-DH_score = rowSums(elem_lsirm_data3[,C01DH])
-
-plot(jitter(DH_score), jitter(SH_score))
-lm_SH_DH = lm(SH_score ~ DH_score)
-summary(lm_SH_DH)
-cor(SH_score, DH_score) # 0.5882901
-
-
-
-## group 4)
-C01SAD = grep("^C01SAD[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01HP = grep("^C01HP[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SAD_score = rowSums(elem_lsirm_data3[,C01SAD])
-HP_score = rowSums(elem_lsirm_data3[,c(C01HP, "C01FD01")])
-
-plot(jitter(SAD_score), jitter(HP_score))
-lm_HP_SAD = lm(HP_score ~ SAD_score)
-summary(lm_HP_SAD)
-cor(HP_score, SAD_score) # 0.5426793
-
-
-## group 5)
-C01SPD = grep("^C01SPD[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SPD_score = rowSums(elem_lsirm_data3[,C01SPD])
-
-glm_SPD_ST2= glm(elem_lsirm_data3[,"C01ST02"] ~ SPD_score, family="binomial")
-glm_SPD_ST3= glm(elem_lsirm_data3[,"C01ST03"] ~ SPD_score, family="binomial")
-
-summary(glm_SPD_ST2)
-summary(glm_SPD_ST3)
-
-
-
-
-
-### Task 2
+# Task : 줄이기 전 문항 / 줄인 문항으로 Rasch model 돌리고 theta값 확인
 
 ## Rasch fitting -  문항 축소전
 sourceCpp("/Users/seoyoung/Desktop/Team5/Incheon_project/rasch/hw4.cpp")

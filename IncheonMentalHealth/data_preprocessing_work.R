@@ -6,93 +6,73 @@
 library(lsirm12pl)
 library(ggplot2)
 
-setwd("/Users/seoyoung/Desktop/Team5/µ¥ÀÌÅÍ CSV(1010)")
-
-elem_data = read.csv("(Data3)ÀÎÃµÁ¾´Ü_ÃÊµîµ¥ÀÌÅÍ¼öÁ¤º»(1010).csv", header=T, fileEncoding = "CP949", encoding = "UTF-8", na.strings = c(-999,"", " "))
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/original_data")
+elem_data = read.csv("(Data3)ì¸ì²œì¢…ë‹¨_ì´ˆë“±ë°ì´í„°ìˆ˜ì •ë³¸(1010).csv", header=T, fileEncoding = "CP949", encoding = "UTF-8", na.strings = c(-999,"", " "))
 head(elem_data)
 summary(elem_data)
 
 
-## ÇÊ¿ä¾ø´Â column Á¦°Å
-# C01ID : student ID
-# C01GR : °ªÀÌ 1¸¸ ÀÖ¾î¼­ ¿­ Á¦°Å
-# C01SNAME : C01SID ¿Í Áßº¹µÈ ÀÇ¹ÌÀÌ¹Ç·Î ¿­ Á¦°Å
-# C01QSD : ¼³¹® ½ÃÀÛ ½Ã°¢
-# C01QED : ¼³¹® ½ÃÀÛ ½Ã°¢
+## Work 1 : í•„ìš”ì—†ëŠ” column ì œê±°
+##################################################################
+# C01ID(student ID) : 
+# C01GR : ê°’ì´ 1ë§Œ ìˆì–´ì„œ ì—´ ì œê±°
+# C01SNAME(school name) : C01SID(school ID)ì™€ ì¤‘ë³µëœ ì˜ë¯¸ì´ë¯€ë¡œ ì—´ ì œê±°
+# C01QSD(ì„¤ë¬¸ ì‹œì‘ ì‹œê°)
+# C01QED(ì„¤ë¬¸ ì¢…ë£Œ ì‹œê°)
 # C01Note 
+##################################################################
 elem_data2 = subset(elem_data, select = -c(C01ID, C01GR, C01SNAME, C01QSD, C01QED, C01NOTE, X.32, X.33))
 head(elem_data2)
 
+
+
+## Work 2 : Binary recoding
+##################################################################
 # C01CPLTE : Complete / not complete
-elem_data2$C01CPLTE = ifelse(elem_data2$C01CPLTE == "¿Ï·á", 1, 0)
+elem_data2$C01CPLTE = ifelse(elem_data2$C01CPLTE == "ì™„ë£Œ", 1, 0)
 
 # C01CSNT : 
 # elem_data2[elem_data2$C01CSNT == "N" & is.na(elem_data2$C01STDT)==0, ]
 elem_data2$C01CSNT = ifelse(elem_data2$C01CSNT == "Y", 1, 0)
 
-
-
-### Preprocessing
-
-## missing
-## ¼³¹® ¿Ï·áÇÏÁö ¾ÊÀº Çà Á¦°Å
-elem_data3 = elem_data2[elem_data2$C01CPLTE == 1,]
-dim(elem_data3)   ## 2207 row
-head(elem_data3)
-summary(elem_data3)
-elem_data3 = subset(elem_data3, select=-c(C01CPLTE, C01CSNT))
-
-
-
-####################################################################################
-####################################################################################
-# NA°¡ ¸¹Àº column
-sort(colSums(is.na(elem_data3)), decreasing=T) 
-
-
-
-####################################################################################
-###################### ÀüÃ¼ ´ë»óÀ¸·Î lsirm µ¹¸®±â 
-####################################################################################
-# binary coding 
+# C01SEX : ì„±ë³„ 1, 2ìœ¼ë¡œ ì €ì¥ë˜ì–´ìˆë˜ê±¸ -> 1, 0ìœ¼ë¡œ recoded
 elem_data3$C01SEX = ifelse(elem_data3$C01SEX == 1, 1, 0)
+
+# C01CE : ìƒë‹´ê²½í—˜
 elem_data3$C01CE1 = ifelse(elem_data3$C01CE1 == 1, 0, 1)
 elem_data3$C01CE2 = ifelse(elem_data3$C01CE2 == 1, 0, 1)
+
+# C01DH : ìƒí™œìŠµê´€
 elem_data3$C01DH06 = ifelse(elem_data3$C01DH06 <= 3, 0, 1)
+
+# C01SIV : í•™êµìƒí™œ ì°¸ì—¬ë„
 elem_data3$C01SIV01 = ifelse(elem_data3$C01SIV01 <= 3, 0, 1)
 elem_data3$C01SIV02 = ifelse(elem_data3$C01SIV02 <= 3, 0, 1)
 elem_data3$C01SIV03 = ifelse(elem_data3$C01SIV03 <= 3, 0, 1)
-# elem_data3$C01STDT = ifelse(elem_data3$C01STDT <= 3, 0, 1)
 
-# grep("^C01FRN", colnames(elem_data), value = T) ## , "C01FRNc", "C01FRNOLc" Ä£±¸ ¼ö ¿­ ¾øÀ½
-covariate_var = c("C01SEX","C01STDTc", "C01PTTc", "C01BKTc", "C01ACVTc", "P01FINCM", "P01FJOB", "P01MJOB")
-
-C01SH = grep("^C01SH[0-9]+$", colnames(elem_data3), value = T)
-C01DH = grep("^C01DH[0-9]+$", colnames(elem_data3), value = T)
-C01SIV = grep("^C01SIV[0-9]+$", colnames(elem_data3), value = T)
-# C01FRL = grep("^C01FRL", colnames(elem_data3), value = T)   # ¾êµµ ¾øÀ½
-# C01TRL = grep("^C01TRL", colnames(elem_data3), value = T)   # ¾êµµ ¾øÀ½
-C01SAD = grep("^C01SAD[0-9]+$", colnames(elem_data3), value = T)
-C01HP = grep("^C01HP[0-9]+$", colnames(elem_data3), value = T)
-C01FD = grep("^C01FD[0-9]+$", colnames(elem_data3), value = T)
-C01ST = grep("^C01ST[0-9]+$", colnames(elem_data3), value = T)
-C01EM = grep("^C01EM[0-9]+$", colnames(elem_data3), value = T)
-C01SS = grep("^C01SS[0-9]+$", colnames(elem_data3), value = T)
-C01SPD = grep("^C01SPD[0-9]+$", colnames(elem_data3), value = T)
-item_group = c(C01SH, C01DH, C01SIV, C01SAD, C01HP, C01FD, C01ST, C01EM, C01SS,C01SPD)
-item_group = c(C01SH, C01DH, C01SAD, C01HP, C01FD, C01ST, C01EM, C01SS,C01SPD)
-
-# item_var = c("C01SID", "C01DGT02c", "C01HE1", "C01HE2", "C01HE3", "C01CE1", "C01CE2", covariate_var, item_group)
-item_var = c("C01SID", "C01DGT02c", "C01CE1", "C01CE2", item_group)
+# C01STDT : ìê¸°ì£¼ë„ ê³µë¶€ì‹œê°„
+elem_data3$C01STDT = ifelse(elem_data3$C01STDT <= 3, 0, 1)
 
 
-elem_data4 = subset(elem_data3, select=item_var)
-colnames(elem_data4)
-head(elem_data4)
+## Work3 : Missing Value
+##################################################################
+## ì„¤ë¬¸ ì™„ë£Œí•˜ì§€ ì•Šì€ í–‰ ì œê±°
+elem_data3 = elem_data2[elem_data2$C01CPLTE == 1, ]
+elem_data3 = subset(elem_data3, select = -c(C01CPLTE, C01CSNT))
 
-# colSums(is.na(elem_data4))
-elem_data4 = na.omit(elem_data4)
-dim(elem_data4)
+dim(elem_data3)   ## 2207 row
+head(elem_data3)
+summary(elem_data3)
+
+
+
+####################################################################################
+####################################################################################
+# NAê°€ ë§ì€ column
+sort(colSums(is.na(elem_data3)), decreasing=T) 
+
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+write.csv(elem_data3, "/Users/seoyoung/Desktop/Team5/elem_data3.csv", row.names=F)
 
 
 
@@ -101,11 +81,11 @@ dim(elem_data4)
 
 
 
+## Work3 : Other Covariates check
+##################################################################
 
 
 
-
-# 
 # 
 # attach(elem_data4)
 # for(i in unique(P01FJOB)){
@@ -131,45 +111,6 @@ dim(elem_data4)
 # colnames(elem_data4)
 
 # write.csv(elem_data4, "/Users/seoyoung/Desktop/Team5/elem_data1022.csv", row.names=F)
-write.csv(elem_data4, "/Users/seoyoung/Desktop/Team5/elem_data1107.csv", row.names=F)
-elem_data4 = read.csv("/Users/seoyoung/Desktop/Team5/elem_data1026.csv")
-
-
-## LSIRM fitting
-
-elem_lsirm_data = as.matrix(subset(elem_data4, select = -c(C01SID)))
-elem_lsirm_data2 = as.matrix(subset(elem_data4, select = -c(C01SID, C01CE1, C01CE2, C01DH06)))
-head(elem_lsirm_data)
-summary(elem_lsirm_data)
-# sum(is.na(elem_lsirm_data))
-
-elem_lsirm_fit = lsirm1pl(data = elem_lsirm_data)
-elem_lsirm_fit2 = lsirm1pl(data = elem_lsirm_data2)
-
-setwd("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit")
-save(elem_lsirm_fit, file = "elem_lsirm_fit1027.RData")
-save(elem_lsirm_fit2, file = "elem_lsirm_fit2_1027.RData")
-
-plot(elem_lsirm_fit2)
-
-
-elem_lsirm_fit_item = data.frame(w1=elem_lsirm_fit$w_estimate[,1], w2=elem_lsirm_fit$w_estimate[,2], item=colnames(elem_lsirm_data))
-ggplot(data=elem_lsirm_fit_item) +
-  geom_point(aes(x=w1, y=w2), color="red") +
-  geom_text_repel(aes(x=w1, y=w2, label = item), size=3)
-
-elem_lsirm_fit_item2 = data.frame(w1=elem_lsirm_fit2$w_estimate[,1], w2=elem_lsirm_fit2$w_estimate[,2], item=colnames(elem_lsirm_data2))
-ggplot(data=elem_lsirm_fit_item2) +
-  geom_point(aes(x=w1, y=w2), color="red") +
-  geom_text_repel(aes(x=w1, y=w2, label = item), size=3)
-
-load("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/elem_lsirm_fit.RData")
-par(mfrow=c(2,2))
-
-ts.plot(elem_lsirm_fit2$beta[,1])
-ts.plot(elem_lsirm_fit2$theta[,3])
-ts.plot(elem_lsirm_fit2$z[,2,2])
-ts.plot(elem_lsirm_fit2$w[,1,2])
 
 
 
@@ -179,51 +120,6 @@ ts.plot(elem_lsirm_fit2$w[,1,2])
 
 
 
-####################################################################################
-###################### ÇĞ±³º°·Î lsirm µ¹¸®±â 
-####################################################################################
-for(name in unique(elem_data3$C01SID)){
-  
-  # LSIRM fitting
-  elem_tmp = elem_data4[elem_data3$C01SID == name,]
-  elem_tmp = as.matrix(subset(elem_tmp, select = -c(C01SID)))
-  fit_tmp = lsirm1pl(data = elem_tmp)
-  save(fit_tmp, file = paste0("lsirm_fit", name, ".RData"))
-  
-}
-
-####################################################################################
-###################### ÇĞ±³º°·Î lsirm µ¹¸®±â 
-####################################################################################
-elem_list_data = list()
-count = 1
-for(name in unique(elem_data4$C01SID)){
-  
-  elem_tmp = elem_data4[elem_data4$C01SID == name,]
-  elem_tmp = as.matrix(subset(elem_tmp, select = -c(C01SID)))
-  elem_list_data[[count]] = elem_tmp
-  count = count + 1
-  
-}
-elem_list_data
-save(elem_list_data, file = "/Users/seoyoung/Desktop/Team5/elem_list_data1031.RData")
-
-load("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/lsirm_fit101.RData")
-par(mfrow=c(1,1))
-
-elem_fit_files = list.files("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit")
-for(file in elem_fit_files){
-  load(paste0("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/", file))
-  file_name = substr(file, 1, 12)
-  
-  df_w = data.frame(w1 = fit_tmp$w_estimate[,1], w2 = fit_tmp$w_estimate[,2])
-  ggplot(df_w) + 
-    geom_point(mapping=aes(w1, w2), color="red") +
-    geom_text(aes(x = w1, y = w2, label= rownames(df_w)))
-    ggtitle(file_name)
-  
-  ggsave(paste0("/Users/seoyoung/Desktop/Team5/Incheon_project/plot/LSIRM/w_estimate/", file_name, ".jpg"), width=20, height=15, units=c("cm"))
-}
 
 
 

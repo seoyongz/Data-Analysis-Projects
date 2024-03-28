@@ -1,20 +1,169 @@
-library(ltm) # Rasch
 library(lsirm12pl)
-library(coda) # CI
+# library(coda) # CI
 library(Rcpp)
 library(RcppArmadillo)
 
 
-## 1109 æ∆∞°∞˙ πÃ∆√¡ÿ∫Ò
-elem_data4 = read.csv("/Users/seoyoung/Desktop/Team5/elem_data1026.csv")
-elem_lsirm_data = as.matrix(subset(elem_data4, select = -c(C01SID)))
+## Data load
+##########################################################################
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+elem_data3 = read.csv("elem_data3.csv")
+elem_lsirm_data1 = as.matrix(subset(elem_data4, select = -c(C01SID)))
 elem_lsirm_data2 = as.matrix(subset(elem_data4, select = -c(C01SID, C01CE1, C01CE2, C01DH06)))
 elem_lsirm_data3 = as.matrix(subset(elem_data4, select = -c(C01SID, C01CE1, C01CE2, C01DH06, C01SIV01, C01SIV02, C01SIV03)))
 
 
+# Work1 : Variable Select
+##########################################################################
+covariate_var = c("C01SEX","C01STDTc", "C01PTTc", "C01BKTc", "C01ACVTc", "P01FINCM", "P01FJOB", "P01MJOB")
+
+## Ìè¨Ìï®Ìï† Ïπ¥ÌÖåÏΩîÎ¶¨Ïóê Ìï¥ÎãπÌïòÎäî Î≥ÄÏàòÏù¥Î¶Ñ Ï†ÄÏû•
+C01SH = grep("^C01SH[0-9]+$", colnames(elem_data3), value = T)
+C01DH = grep("^C01DH[0-9]+$", colnames(elem_data3), value = T)
+C01SIV = grep("^C01SIV[0-9]+$", colnames(elem_data3), value = T)
+C01SAD = grep("^C01SAD[0-9]+$", colnames(elem_data3), value = T)
+C01HP = grep("^C01HP[0-9]+$", colnames(elem_data3), value = T)
+C01FD = grep("^C01FD[0-9]+$", colnames(elem_data3), value = T)
+C01ST = grep("^C01ST[0-9]+$", colnames(elem_data3), value = T)
+C01EM = grep("^C01EM[0-9]+$", colnames(elem_data3), value = T)
+C01SS = grep("^C01SS[0-9]+$", colnames(elem_data3), value = T)
+C01SPD = grep("^C01SPD[0-9]+$", colnames(elem_data3), value = T)
+item_group = c(C01SH, C01DH, C01SIV, C01SAD, C01HP, C01FD, C01ST, C01EM, C01SS, C01SPD)
+item_group = c(C01SH, C01DH, C01SAD, C01HP, C01FD, C01ST, C01EM, C01SS, C01SPD)
+
+## Î™®Ìòï fittingÏóê Ìè¨Ìï®Ìï† Î≥ÄÏàòÎì§ Ï†ïÏùò
+item_var = c("C01SID", "C01DGT02c", "C01CE1", "C01CE2", item_group)
+elem_data4 = subset(elem_data3, select = item_var)
+colnames(elem_data4)
+head(elem_data4)
+
+colSums(is.na(elem_data4))
+elem_data4 = na.omit(elem_data4)
+dim(elem_data4)
+
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+write.csv(elem_data4, "elem_data4.csv", row.names=F)
 
 
-## C01SIV ª©∞Ì lsirm fitting
+## Work 2-1 : LSIRM fitting
+##########################################################################
+elem_lsirm_fit1 = lsirm1pl(data = elem_lsirm_data1)
+elem_lsirm_fit2 = lsirm1pl(data = elem_lsirm_data2)
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+save(elem_lsirm_fit1, file = "elem_lsirm_fit1_1027.RData")
+save(elem_lsirm_fit2, file = "elem_lsirm_fit2_1027.RData")
+
+
+
+## Work 2-2 : Model Convergence Check
+##########################################################################
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+load("elem_lsirm_fit1_1027.RData")
+load("elem_lsirm_fit2_1027.RData")
+
+par(mfrow=c(2,2))
+ts.plot(elem_lsirm_fit1$beta[, 1])
+ts.plot(elem_lsirm_fit1$theta[ 3])
+ts.plot(elem_lsirm_fit1$z[, 2, 2])
+ts.plot(elem_lsirm_fit1$w[, 1, 2])
+
+ts.plot(elem_lsirm_fit2$beta[, 1])
+ts.plot(elem_lsirm_fit2$theta[, 3])
+ts.plot(elem_lsirm_fit2$z[, 2, 2])
+ts.plot(elem_lsirm_fit2$w[, 1, 2])
+
+
+
+
+## Work 2-3 : Latent positions Check
+###########################################################################
+plot(elem_lsirm_fit1)
+plot(elem_lsirm_fit2)
+
+
+# Plot only item positions (not respondents')
+elem_lsirm_fit1_item = data.frame()
+elem_lsirm_fit1_item$w1 = elem_lsirm_fit1$w_estimate[, 1]
+elem_lsirm_fit1_item$w2 = elem_lsirm_fit1$w_estimate[, 2]
+elem_lsirm_fit1_item$item = colnames(elem_lsirm_data)
+
+ggplot(data = elem_lsirm_fit1_item) +
+  geom_point(aes(x = w1, y = w2), color="red") +
+  geom_text_repel(aes(x = w1, y = w2, label = item), size = 3)
+
+
+elem_lsirm_fit2_item = data.frame()
+elem_lsirm_fit2_item$w1 = elem_lsirm_fit2$w_estimate[, 1]
+elem_lsirm_fit2_item$w2 = elem_lsirm_fit2$w_estimate[, 2]
+elem_lsirm_fit2_item$item = colnames(elem_lsirm_data)
+
+ggplot(data = elem_lsirm_fit2_item) +
+  geom_point(aes(x = w1, y = w2), color="red") +
+  geom_text_repel(aes(x = w1, y = w2, label = item), size = 3)
+
+
+
+
+
+
+
+
+
+## Work 3-1 : Change the data structure to list
+#######################################################################
+elem_list_data = list()
+count = 1
+for(name in unique(elem_data4$C01SID)){
+  elem_tmp = elem_data4[elem_data4$C01SID == name,]
+  elem_tmp = as.matrix(subset(elem_tmp, select = -c(C01SID)))
+  elem_list_data[[count]] = elem_tmp
+  count = count + 1
+}
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+save(elem_list_data, file = "elem_list_data1031.RData")
+
+
+
+
+## Work 3-2 : LSIRM fitting for each school
+########################################################################
+elem_lsirm_fit_school = list()
+count = 1
+for(data in elem_list_data){
+  elem_lsirm_fit_school[[count]] = lsirm1pl(data)
+  count = count + 1
+}
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+save(elem_lsirm_fit_school, file = ("elem_lsirm_fit_school.RData"))
+
+
+
+## Work 3-3 : Latent positions Check
+########################################################################
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+load("elem_lsirm_fit_school.RData")
+
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/plots")
+count = 1
+for(data in elem_lsirm_fit_school){
+
+  df_w = data.frame(w1 = data$w_estimate[, 1], w2 = data$w_estimate[, 2])
+
+  ggplot(df_w) + 
+    geom_point(mapping = aes(w1, w2), color = "red") +
+    geom_text(aes(x = w1, y = w2, label = 1:nrow(df_w)))
+    ggtitle(paste0("Item Latent Positions in school", count))
+
+  ggsave(paste0("school", count, ".jpg"), width = 20, height = 15, units = c("cm"))
+  count = count + 1
+}
+
+
+
+
+
+
+## C01SIV ÎπºÍ≥† lsirm fitting
 
 elem_lsirm_fit1107 = lsirm1pl(data = elem_lsirm_data3)
 setwd("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit")
@@ -24,48 +173,11 @@ ngroup = 5
 spec_clust(elem_lsirm_fit1107, k=ngroup)
 
 
-# Task 1 : √ µÓµ•¿Ã≈Õ 5∞≥¿« cluster ∫∞∑Œ lsirm µπ∑¡º≠ gamma∞° 0 ≥™ø¿¥¬¡ˆ »Æ¿Œ
-
-## cluster∫∞ lsirm fitting«“ µ•¿Ã≈Õ ∏∏µÈ±‚ (ngroup = 5)
-elem_clust_var = list()
-elem_clust_var[[1]] = colnames(elem_lsirm_data3)[c(51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71)]
-elem_clust_var[[2]] = colnames(elem_lsirm_data3)[c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22)]
-elem_clust_var[[3]] = colnames(elem_lsirm_data3)[c(38, 39, 40, 41, 42, 43, 46, 47, 48, 49)]
-elem_clust_var[[4]] = colnames(elem_lsirm_data3)[c(23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37)]
-elem_clust_var[[5]] = colnames(elem_lsirm_data3)[c(44, 45, 50, 72, 73, 74, 75)]
-
-
-elem_clust_data = list()
-for(i in 1:ngroup){
-  elem_clust_data[[i]] = subset(elem_lsirm_data3, select=elem_clust_var[[i]])
-}
-
-
-
-## lsirm fitting
-elem_clust_lsirm_fit = list()
-for(i in 1:ngroup){
-  elem_clust_lsirm_fit[[i]] = lsirm1pl(data = elem_clust_data[[i]], spikenslab = T)
-}
-save(elem_clust_lsirm_fit, file = "/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/elem_clust_lsirm_fit.RData")
-plot(elem_clust_lsirm_fit[[5]])
 
 
 
 
-## result : gamma check with confidence interval
-HPDinterval(as.mcmc(elem_clust_lsirm_fit[[1]]$gamma))
-HPDinterval(as.mcmc(elem_clust_lsirm_fit[[2]]$gamma))
-HPDinterval(as.mcmc(elem_clust_lsirm_fit[[3]]$gamma))
-HPDinterval(as.mcmc(elem_clust_lsirm_fit[[4]]$gamma))
-HPDinterval(as.mcmc(elem_clust_lsirm_fit[[5]]$gamma))
-
-
-
-
-
-
-# Task 2 : √ µÓ ∞¢∞¢ 5∞≥ ±◊∑Ïø°º≠ Rasch µπ∏Æ±‚
+# Task 2 : Ï¥àÎì± Í∞ÅÍ∞Å 5Í∞ú Í∑∏Î£πÏóêÏÑú Rasch ÎèåÎ¶¨Í∏∞
 # load("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/elem_clust_lsirm_fit.RData")
 # 
 # ## Rasch fitting
@@ -93,249 +205,13 @@ HPDinterval(as.mcmc(elem_clust_lsirm_fit[[5]]$gamma))
 
 
 
-# Task 3 : √ µÓ ∞¢ ±◊∑Ï æ»ø°º≠ regression µπ∑¡º≠ insight æÚ¥¬ øπΩ√
-## «–±≥ ª˝»∞∞˙ «‡∫πµµøÕ¿« ∞¸∞Ë
-SAD_school = rowSums(elem_lsirm_data3[,c("C01SAD01", "C01SAD02", "C01SAD03")])
-SAD_friend = rowSums(elem_lsirm_data3[,c("C01SAD04", "C01SAD05", "C01SAD06", "C01SAD07")])
-SAD_teacher = rowSums(elem_lsirm_data3[,c("C01SAD08", "C01SAD09", "C01SAD10", "C01SAD11")])
-
-glm_fit_HP1 = glm(elem_lsirm_data3[,"C01HP01"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-glm_fit_HP2 = glm(elem_lsirm_data3[,"C01HP02"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-glm_fit_HP3 = glm(elem_lsirm_data3[,"C01HP03"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-summary(glm_fit_HP1)
-summary(glm_fit_HP2)
-summary(glm_fit_HP3)
-
-
-glm_fit_ST1 = glm(elem_lsirm_data3[,"C01ST01"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-glm_fit_ST3 = glm(elem_lsirm_data3[,"C01ST03"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-glm_fit_ST5 = glm(elem_lsirm_data3[,"C01ST05"] ~ SAD_school + SAD_friend + SAD_teacher, family="binomial")
-summary(glm_fit_ST1)
-summary(glm_fit_ST3)
-summary(glm_fit_ST5)
 
 
 
 
 
-##------------------------------------------------------------------------------------------------##
-## 11/9
-# Task 1 : cluster ∫∞ regression
-# Task 2 : ¡Ÿ¿Œ πÆ«◊¿∏∑Œ Rasch model µπ∏Æ∞Ì theta∞™ »Æ¿Œ
 
 
 
-### Task 1
-## group 1)
-C01EM = grep("^C01EM[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01SS = grep("^C01SS[0-9]+$", colnames(elem_lsirm_data3), value = T)
-EM_score = rowSums(elem_lsirm_data3[,C01EM])
-SS_score = rowSums(elem_lsirm_data3[,C01SS])
-
-plot(jitter(EM_score), jitter(SS_score))
-lm_SS_EM = lm(SS_score ~ EM_score)
-summary(lm_SS_EM)
-cor(SS_score, EM_score) # 0.6488856
-
-
-
-## group 2) 
-C01SH = grep("^C01SH[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01DH = grep("^C01DH[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SH_score = rowSums(elem_lsirm_data3[,C01SH])
-DH_score = rowSums(elem_lsirm_data3[,C01DH])
-
-plot(jitter(DH_score), jitter(SH_score))
-lm_SH_DH = lm(SH_score ~ DH_score)
-summary(lm_SH_DH)
-cor(SH_score, DH_score) # 0.5882901
-
-
-
-## group 4)
-C01SAD = grep("^C01SAD[0-9]+$", colnames(elem_lsirm_data3), value = T)
-C01HP = grep("^C01HP[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SAD_score = rowSums(elem_lsirm_data3[,C01SAD])
-HP_score = rowSums(elem_lsirm_data3[,c(C01HP, "C01FD01")])
-
-plot(jitter(SAD_score), jitter(HP_score))
-lm_HP_SAD = lm(HP_score ~ SAD_score)
-summary(lm_HP_SAD)
-cor(HP_score, SAD_score) # 0.5426793
-
-
-## group 5)
-C01SPD = grep("^C01SPD[0-9]+$", colnames(elem_lsirm_data3), value = T)
-SPD_score = rowSums(elem_lsirm_data3[,C01SPD])
-
-glm_SPD_ST2= glm(elem_lsirm_data3[,"C01ST02"] ~ SPD_score, family="binomial")
-glm_SPD_ST3= glm(elem_lsirm_data3[,"C01ST03"] ~ SPD_score, family="binomial")
-
-summary(glm_SPD_ST2)
-summary(glm_SPD_ST3)
-
-
-
-
-
-### Task 2
-
-## Rasch fitting -  πÆ«◊ √‡º“¿¸
-sourceCpp("/Users/seoyoung/Desktop/Team5/Incheon_project/rasch/hw4.cpp")
-
-nsamp = 10000
-nburn = 3000
-nthin = 5
-pr_beta_mu = 0
-pr_beta_sd = 1
-pr_theta_mu = 0
-pr_theta_sd = 1
-jump_beta = 0.2
-jump_theta = 0.04
-a_pri=0.001
-b_pri=0.001
-
-elem_rasch_fit = list()
-ngroup = 5
-for(i in 1:ngroup){
-  elem_rasch_fit[[i]] = rasch_cpp(data = elem_clust_data[[i]], nsamp = nsamp, nburn = nburn, nthin=nthin,
-                                  pr_beta_mu = pr_beta_mu, pr_beta_sd = pr_beta_sd, 
-                                  pr_theta_mu = pr_theta_mu, pr_theta_sd = pr_theta_sd,
-                                  jump_beta = jump_beta, jump_theta = jump_theta,
-                                  a_pri = a_pri, b_pri = b_pri)
-}
-save(elem_rasch_fit, file="/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/Rasch/elem_rasch_fit.RData")
-
-elem_rasch_fit[[1]]$accept_b
-elem_rasch_fit[[2]]$accept_b
-elem_rasch_fit[[3]]$accept_b
-elem_rasch_fit[[4]]$accept_b
-elem_rasch_fit[[5]]$accept_b
-
-elem_rasch_fit[[1]]$accept_t
-elem_rasch_fit[[2]]$accept_t
-elem_rasch_fit[[3]]$accept_t
-elem_rasch_fit[[4]]$accept_t
-elem_rasch_fit[[5]]$accept_t
-
-## traceplot
-par(mfrow=c(2,5))
-for(i in 1:ngroup){
-  ts.plot(elem_rasch_fit[[i]]$beta[,1])
-}
-for(i in 1:ngroup){
-  ts.plot(elem_rasch_fit[[i]]$theta[,1])
-}
-
-## theta values
-load("/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/Rasch/elem_rasch_fit.RData")
-elem_rasch_theta = list()
-for(i in 1:ngroup){
-  elem_rasch_theta[[i]] = elem_rasch_fit[[i]]$theta
-}
-
-## theta histogram
-par(mfrow=c(2,3))
-for(i in 1:ngroup){
-  hist(elem_rasch_theta[[i]], breaks=40, main = paste0("Respondent score for Group", i), xlab = "score values")
-  print(summary(elem_rasch_theta[[i]]))
-}
-
-summary(elem_rasch_theta[[1]])
-elem_rasch_theta[[1]][1:5]
-elem_rasch_theta[[2]][1:5]
-elem_rasch_theta[[3]][1:5]
-str(elem_rasch_theta[[1]])
-
-
-## πÆ«◊ √‡º“
-elem_reduced_clust_var = list()
-elem_reduced_clust_var[[1]] = c("C01EM01", "C01EM02", "C01EM03", "C01EM08", "C01SS03","C01SS04","C01SS08","C01SS11")
-elem_reduced_clust_var[[2]] = c("C01DGT02c", "C01SH02", "C01SH04", "C01SH07", "C01SH10", "C01DH02", "C01DH03", "C01DH07", "C01DH08", "C01DH10", "C01DH11")
-elem_reduced_clust_var[[3]] = c("C01FD04", "C01FD05", "C01FD06", "C01ST04", "C01ST06", "C01ST07")
-elem_reduced_clust_var[[4]] = c("C01SAD02", "C01SAD04", "C01SAD05", "C01SAD11", "C01HP02", "C01HP03", "C01FD01")
-elem_reduced_clust_var[[5]] = c("C01ST02", "C01ST03", "C01SPD02", "C01SPD04")
-
-# elem_reduced_var = c(elem_reduced_group1, elem_reduced_group2, elem_reduced_group3, elem_reduced_group4, elem_reduced_group5)
-# elem_reduced_data = subset(elem_lsirm_data3, select=elem_reduced_var)
-
-elem_reduced_clust_data = list()
-for(i in 1:ngroup){
-  elem_reduced_clust_data[[i]] = subset(elem_lsirm_data3, select = elem_reduced_clust_var[[i]])
-}
-
-
-
-## Rasch fitting -  πÆ«◊ √‡º“»ƒ
-
-
-sourceCpp("/Users/seoyoung/Desktop/Team5/Incheon_project/rasch/hw4.cpp")
-elem_reduced_rasch_fit = list()
-
-nsamp = 10000
-nburn = 3000
-nthin = 5
-pr_beta_mu = 0
-pr_beta_sd = 1
-pr_theta_mu = 0
-pr_theta_sd = 1
-jump_beta = 0.2
-jump_theta = 0.04
-a_pri=0.001
-b_pri=0.001
-for(i in 1:ngroup){
-  elem_reduced_rasch_fit[[i]] = rasch_cpp(data = elem_reduced_clust_data[[i]], nsamp = nsamp, nburn = nburn, nthin=nthin,
-                                          pr_beta_mu = pr_beta_mu, pr_beta_sd = pr_beta_sd, 
-                                          pr_theta_mu = pr_theta_mu, pr_theta_sd = pr_theta_sd,
-                                          jump_beta = jump_beta, jump_theta = jump_theta,
-                                          a_pri = a_pri, b_pri = b_pri)
-}
-save(elem_reduced_rasch_fit, file="/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/Rasch/elem_reduced_rasch_fit.RData")
-
-
-
-elem_reduced_rasch_fit[[1]]$accept_b
-elem_reduced_rasch_fit[[2]]$accept_b
-elem_reduced_rasch_fit[[3]]$accept_b
-elem_reduced_rasch_fit[[4]]$accept_b
-elem_reduced_rasch_fit[[5]]$accept_b
-
-elem_reduced_rasch_fit[[1]]$accept_t
-elem_reduced_rasch_fit[[2]]$accept_t
-elem_reduced_rasch_fit[[3]]$accept_t
-elem_reduced_rasch_fit[[4]]$accept_t
-elem_reduced_rasch_fit[[5]]$accept_t
-
-## traceplot
-par(mfrow=c(2,5))
-for(i in 1:ngroup){
-  ts.plot(elem_reduced_rasch_fit[[i]]$beta[,1])
-}
-for(i in 1:ngroup){
-  ts.plot(elem_reduced_rasch_fit[[i]]$theta[,1])
-}
-
-
-## theta values
-elem_reduced_rasch_theta = list()
-for(i in 1:ngroup){
-  elem_reduced_rasch_theta[[i]] = colMeans(elem_reduced_rasch_fit[[i]]$theta)
-}
-
-# scaling
-elem_reduced_rasch_theta_scaled = list()
-for(i in 1:ngroup){
-  elem_reduced_rasch_theta_scaled[[i]] = scale(elem_reduced_rasch_theta[[i]], center=min(elem_reduced_rasch_theta[[i]]), scale=max(elem_reduced_rasch_theta[[i]]) - min(elem_reduced_rasch_theta[[i]]))
-}
-
-## theta histogram
-par(mfrow=c(1,2))
-for(i in 1:ngroup){
-  hist(elem_reduced_rasch_theta_scaled[[i]], breaks=100, main = paste0("Respondent score for Group", i), xlab = "scale", ylab="")
-  # print(summary(elem_reduced_rasch_theta[[i]]))
-}
-for(i in 1:ngroup){
-  print(summary(elem_reduced_rasch_theta_scaled[[i]]))
-}
 
 
