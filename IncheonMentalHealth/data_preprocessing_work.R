@@ -1,8 +1,6 @@
-### elementary data preprocessing -> saved as "/Users/seoyoung/Desktop/Team5/elem_data1022.csv"
+### elementary data preprocessed -> saved as "/Users/seoyoung/Desktop/Team5/elem_data1022.csv"
 ### lsirm fitting -> "/Users/seoyoung/Desktop/Team5/Incheon_project/fit_rdata/elem_lsirm_fit/elem_lsirm_fit.RData
 ### lsirm fitting for each school
-
-
 
 
 library(lsirm12pl)
