@@ -10,35 +10,6 @@
 library(lsirm12pl)
 
 
-## Data load
-##########################################################################
-setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
-elem_data4 = read.csv("elem_data4.csv")
-
-
-# Work1 : Variable Select -> elem_data5 save
-##########################################################################
-covariate_var = c("C01SEX","C01STDTc", "P01FINCM", "P01FJOB", "P01MJOB")
-item_names = colnames(elem_data4)
-
-## Get variable names by item category
-selected_items = c("C01SID", "C01STDTc", "C01PTTc", "C01BKTc", "C01ACVTc")
-item_category = c("SH", "DH", "CE", "SIV", "SAD", "HP", "FD", "ST", "EM", "SS", "SPD")
-for(x in item_category){
-  selected_items = c(selected_items, grep(paste0("^C01", x, "[0-9]+$"), item_names, value = T))
-}
-selected_items = c(selected_items, "C01DGT01c", "C01DGT02c")
-selected_items
-elem_data5 = subset(elem_data4, select = selected_items)
-
-head(elem_data5)
-
-sum(is.na(elem_data5))  ## no missing check
-dim(elem_data5)   ## 2207 x 87
-
-setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
-write.csv(elem_data5, "elem_data5.csv", row.names=F)
-
 
 
 ## Work 2-1 : LSIRM fitting
@@ -194,6 +165,7 @@ for(name in school_names){
   elem_list_data[[count]] = elem_tmp
   count = count + 1
 }
+head(elem_list_data[[1]])
 setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
 save(elem_list_data, file = "elem_list_data.RData")
 
@@ -276,6 +248,30 @@ for(data in elem_lsirm_fit_school){
   ggsave(file_name, width = 20, height = 15, units = c("cm"))
   count = count + 1
 }
+
+
+
+
+
+
+## Work : Change the data structure to list (middle school data)
+#######################################################################
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/csv_data")
+mid_data5 = read.csv("mid_data5.csv")
+
+mid_list_data = list()
+count = 1
+school_names = unique(mid_data5$C01SID)
+for(name in school_names){
+  mid_tmp = mid_data5[mid_data5$C01SID == name,]
+  mid_tmp = as.matrix(subset(mid_tmp, select = -c(C01SID)))
+  
+  mid_list_data[[count]] = mid_tmp
+  count = count + 1
+}
+head(mid_list_data[[1]])
+setwd("/Users/seoyoung/Desktop/IncheonMentalHelath/RData")
+save(mid_list_data, file = "mid_list_data.RData")
 
 
 
